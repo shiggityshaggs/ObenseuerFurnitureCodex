@@ -27,6 +27,8 @@ namespace FurnitureCodex.UI
 
         public static Skin HoverSkin { get; set; }
 
+        HashSet<Category> collapsedCategories = [];
+
         public string Filter
         {
             get;
@@ -133,7 +135,7 @@ namespace FurnitureCodex.UI
             foreach (var grouping in groupings)
             {
                 var cells = grouping
-                    .Where(x => x.image != null)
+                    .Where(x => x.category != Category.None)
                     .SelectMany(x => x.Cells())
                     .Where(OwnedPredicate.Invoke)
                     .Where(FilterPredicate.Invoke)
@@ -189,6 +191,11 @@ namespace FurnitureCodex.UI
                 SelectionIndex = GUILayout.SelectionGrid(selected: SelectionIndex, texts: ["All", "Have", "Missing"], xCount: 3, selectionGridStyle);
 
                 GUILayout.FlexibleSpace();
+
+                if (GUILayout.Button("Collapse")) collapsedCategories = [..Enum.GetValues(typeof(Category)).Cast<Category>()];
+                if (GUILayout.Button("Expand")) collapsedCategories = [];
+
+                GUILayout.FlexibleSpace();
                 canRemoveStorage = GUILayout.Toggle(canRemoveStorage, "Can remove storage");
             }
 
@@ -201,7 +208,18 @@ namespace FurnitureCodex.UI
 
                 foreach (var kvp in furnitureCellsDict)
                 {
-                    GUILayout.Label(kvp.Key.ToString());
+                    bool collapsed = collapsedCategories.Contains(kvp.Key);
+
+                    GUI.color = collapsed ? Color.yellow : Color.white;
+                    if (GUILayout.Button(kvp.Key.ToString(), GUI.skin.label))
+                    {
+                        if (collapsed) collapsedCategories.Remove(kvp.Key);
+                        else collapsedCategories.Add(kvp.Key);
+                        return;
+                    }
+
+                    if (collapsed) continue;
+
                     var filtered = kvp.Value;
 
                     for (int i = 0; i < filtered.Count(); i += itemsPerRow)
@@ -212,7 +230,7 @@ namespace FurnitureCodex.UI
                         {
                             foreach (var cell in cells)
                             {
-                                var content = new GUIContent() { image = cell.Image.texture };
+                                var content = new GUIContent() { image = cell.Image?.texture ?? Texture2D.redTexture };
                                 if (GUILayout.Button(content, buttonStyle))
                                 {
                                     if (cell.AddOrRemove(canRemoveStorage))
