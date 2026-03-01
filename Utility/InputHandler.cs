@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using HarmonyLib;
 
 namespace FurnitureCodex.Utility
 {
@@ -10,14 +9,10 @@ namespace FurnitureCodex.Utility
         bool IsBuildMenu => BuildingSystemMenu.instance?.menuIsOpen ?? false;
         bool IsPaused => GameController.instance?.GameIsPaused ?? false;
 
-        internal static bool WasCodexClosedThisFrame;
-
         void Update()
         {
-            WasCodexClosedThisFrame = false;
-
             if (!GameUIController.instance || !BuildingSystemMenu.instance) return;
-            if (IsMenu || IsInventory || IsBuildMenu || IsPaused) return;
+            if ((IsMenu && !IsBuildMenu) || IsInventory || IsPaused) return;
 
             if (Input.GetKeyDown(KeyCode.K))
             {
@@ -32,29 +27,30 @@ namespace FurnitureCodex.Utility
             }
         }
 
+        System.Collections.IEnumerator ControlsEnabled(bool enable)
+        {
+            yield return new WaitForEndOfFrame();
+            if (enable)
+                GameController.instance.ControlsEnabled(this.gameObject);
+            else
+                GameController.instance.ControlsDisabled(gameObject: this.gameObject, ShowCursor: true);
+        }
+
         void OpenCodex()
         {
+            if (GameController.instance != null && GameController.instance.keysDisabled)
+                return;
+
             Plugin.codex.enabled = true;
             Plugin.tooltip.enabled = true;
-            GameController.instance.ControlsDisabled(gameObject: this.gameObject, ShowCursor: true);
+            StartCoroutine(ControlsEnabled(false));
         }
 
         void CloseCodex()
         {
             Plugin.codex.enabled = false;
             Plugin.tooltip.enabled = false;
-            GameController.instance.ControlsEnabled(this.gameObject);
-            WasCodexClosedThisFrame = true;
+            StartCoroutine(ControlsEnabled(true));
         }
-    }
-
-    [HarmonyPatch]
-    class Patch
-    {
-        [HarmonyPatch(typeof(PauseMenu), nameof(PauseMenu.Pause)), HarmonyPrefix]
-        static bool PauseMenu_Pause() => !InputHandler.WasCodexClosedThisFrame;
-
-        [HarmonyPatch(typeof(GameUIController), nameof(GameUIController.ToggleGameMenu)), HarmonyPrefix]
-        static bool GameUIController_ToggleGameMenu() => !InputHandler.WasCodexClosedThisFrame;
     }
 }

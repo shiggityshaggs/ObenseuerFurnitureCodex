@@ -1,9 +1,7 @@
 ﻿using BepInEx;
-using HarmonyLib;
 using FurnitureCodex.UI;
 using FurnitureCodex.Utility;
 using System;
-using System.Reflection;
 
 namespace FurnitureCodex;
 
@@ -17,7 +15,6 @@ public class Plugin : BaseUnityPlugin
     private void Awake()
     {
         Console.WriteLine($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
-        new Harmony(MyPluginInfo.PLUGIN_NAME).PatchAll(Assembly.GetExecutingAssembly());
         
         codex = gameObject.AddComponent<UI.Codex>();
         codex.enabled = false;
